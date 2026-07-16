@@ -11,6 +11,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
 @Controller('auth')
@@ -29,9 +30,20 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtRefreshGuard)
+  async refresh(
+    @CurrentUser() user: { userId: string; email: string },
+  ) {
+    return this.authService.refreshTokens(user.userId, user.email);
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
-  async getCurrentUser(@CurrentUser() user: { userId: string; email: string }) {
+  async getCurrentUser(
+    @CurrentUser() user: { userId: string; email: string },
+  ) {
     return user;
   }
 }

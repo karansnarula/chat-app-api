@@ -14,7 +14,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) { }
 
   async register(dto: RegisterDto) {
     // Check if user already exists
@@ -52,33 +52,33 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-  // Find the user
-  const user = await this.prisma.user.findUnique({
-    where: { email: dto.email },
-  });
+    // Find the user
+    const user = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
 
-  if (!user) {
-    throw new UnauthorizedException('Invalid credentials');
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Compare provided password with hashed password
+    const isPasswordValid = await bcrypt.compare(dto.password, user.password);
+
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const tokens = await this.generateTokens(user.id, user.email);
+
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+      },
+      ...tokens,
+    };
   }
-
-  // Compare provided password with hashed password
-  const isPasswordValid = await bcrypt.compare(dto.password, user.password);
-
-  if (!isPasswordValid) {
-    throw new UnauthorizedException('Invalid credentials');
-  }
-
-  const tokens = await this.generateTokens(user.id, user.email);
-
-  return {
-    user: {
-      id: user.id,
-      email: user.email,
-      displayName: user.displayName,
-    },
-    ...tokens,
-  };
-}
 
   private async generateTokens(userId: string, email: string) {
     const payload = { sub: userId, email };
@@ -94,5 +94,17 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken };
+  }
+
+  async refreshTokens(userId: string, email: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User no longer exists');
+    }
+
+    return this.generateTokens(user.id, user.email);
   }
 }
