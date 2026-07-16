@@ -113,4 +113,46 @@ export class FriendsService {
         return { message: 'Friend request accepted' };
     }
 
+    async getPendingRequests(userId: string) {
+  return this.prisma.friendRequest.findMany({
+    where: {
+      receiverId: userId,
+      status: 'PENDING',
+    },
+    include: {
+      sender: {
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+async getFriends(userId: string) {
+  const friendships = await this.prisma.friendship.findMany({
+    where: {
+      OR: [{ userAId: userId }, { userBId: userId }],
+    },
+    include: {
+      userA: {
+        select: { id: true, email: true, displayName: true },
+      },
+      userB: {
+        select: { id: true, email: true, displayName: true },
+      },
+    },
+  });
+
+  // Map to return only the "other" person, not the current user
+  return friendships.map((friendship) => {
+    return friendship.userAId === userId
+      ? friendship.userB
+      : friendship.userA;
+  });
+}
+
 }
