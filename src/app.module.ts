@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { FriendsModule } from './friends/friends.module';
 import { ConversationsModule } from './conversations/conversations.module';
+import { MessagesModule } from './messages/messages.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ConversationsModule } from './conversations/conversations.module';
     UsersModule,
     FriendsModule,
     ConversationsModule,
+    MessagesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
