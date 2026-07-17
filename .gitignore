@@ -56,3 +56,9 @@ pids
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 /generated/prisma
+
+# Firebase
+src/config/firebase/firebase-service-account.json
+
+# WebSocket testing scripts (contain JWT tokens for local testing)
+websocket-test/

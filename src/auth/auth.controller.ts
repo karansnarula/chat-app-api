@@ -14,9 +14,10 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
+
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -37,6 +38,13 @@ export class AuthController {
     @CurrentUser() user: { userId: string; email: string },
   ) {
     return this.authService.refreshTokens(user.userId, user.email);
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async logout(@CurrentUser() user: { userId: string }) {
+    return this.authService.logout(user.userId);
   }
 
   @Get('me')
