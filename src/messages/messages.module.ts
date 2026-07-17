@@ -8,5 +8,6 @@ import { MessagesGateway } from './messages.gateway';
   imports: [JwtModule.register({})],
   controllers: [MessagesController],
   providers: [MessagesService, MessagesGateway],
+  exports: [MessagesGateway],
 })
 export class MessagesModule {}

@@ -17,8 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
   cors: { origin: '*' },
 })
 export class MessagesGateway
-  implements OnGatewayConnection, OnGatewayDisconnect
-{
+  implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
@@ -29,7 +28,7 @@ export class MessagesGateway
     private readonly jwtService: JwtService,
     private readonly messagesService: MessagesService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async handleConnection(client: Socket) {
     try {
@@ -100,5 +99,46 @@ export class MessagesGateway
 
     // Also send back to the sender for confirmation
     return message;
+  }
+
+  @SubscribeMessage('message:read')
+async handleMessageRead(
+  @ConnectedSocket() client: Socket,
+  @MessageBody() data: { conversationId: string },
+) {
+  const userId = client.data.userId as string;
+
+  await this.messagesService.markAsRead(userId, data.conversationId);
+
+  const conversation = await this.prisma.conversation.findUnique({
+    where: { id: data.conversationId },
+    include: { participants: true },
+  });
+
+  const otherParticipant = conversation?.participants.find(
+    (p) => p.userId !== userId,
+  );
+
+  if (otherParticipant) {
+    const senderSocketId = this.userSocketMap.get(otherParticipant.userId);
+
+    if (senderSocketId) {
+      this.server.to(senderSocketId).emit('message:read', {
+        conversationId: data.conversationId,
+        readBy: userId,
+      });
+    }
+  }
+}
+
+  notifyFriendRequest(
+    receiverId: string,
+    payload: { requestId: string; sender: any },
+  ) {
+    const receiverSocketId = this.userSocketMap.get(receiverId);
+
+    if (receiverSocketId) {
+      this.server.to(receiverSocketId).emit('friend:request', payload);
+    }
   }
 }
