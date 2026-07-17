@@ -7,6 +7,7 @@ import {
   HttpStatus,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -14,10 +15,9 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JwtRefreshGuard } from './guards/jwt-refresh.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 
-
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
@@ -25,6 +25,7 @@ export class AuthController {
     return this.authService.register(dto);
   }
 
+  @Throttle({ default: { limit: 5, ttl: 900000 } })
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(@Body() dto: LoginDto) {
@@ -34,17 +35,8 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtRefreshGuard)
-  async refresh(
-    @CurrentUser() user: { userId: string; email: string },
-  ) {
+  async refresh(@CurrentUser() user: { userId: string; email: string }) {
     return this.authService.refreshTokens(user.userId, user.email);
-  }
-
-  @Post('logout')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtAuthGuard)
-  async logout(@CurrentUser() user: { userId: string }) {
-    return this.authService.logout(user.userId);
   }
 
   @Get('me')
@@ -53,5 +45,12 @@ export class AuthController {
     @CurrentUser() user: { userId: string; email: string },
   ) {
     return user;
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async logout(@CurrentUser() user: { userId: string }) {
+    return this.authService.logout(user.userId);
   }
 }

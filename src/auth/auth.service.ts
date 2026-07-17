@@ -107,4 +107,10 @@ export class AuthService {
 
     return this.generateTokens(user.id, user.email);
   }
+
+  async logout(userId: string) {
+    // For now, this is symbolic — the client discards tokens locally.
+    // In the future, this is where we'd add token revocation (blocklist).
+    return { message: 'Logged out successfully' };
+  }
 }

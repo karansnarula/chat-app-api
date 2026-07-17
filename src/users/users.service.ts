@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async findById(userId: string) {
     const user = await this.prisma.user.findUnique({
@@ -34,5 +34,13 @@ export class UsersService {
         createdAt: true,
       },
     });
+  }
+
+  async updateFcmToken(userId: string, fcmToken: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { fcmToken },
+    });
+    return { message: 'FCM token updated' };
   }
 }

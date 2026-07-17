@@ -12,12 +12,14 @@ import { JwtService } from '@nestjs/jwt';
 import { Logger } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { FcmService } from '../fcm/fcm.service';
 
 @WebSocketGateway({
   cors: { origin: '*' },
 })
 export class MessagesGateway
-  implements OnGatewayConnection, OnGatewayDisconnect {
+  implements OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -28,7 +30,8 @@ export class MessagesGateway
     private readonly jwtService: JwtService,
     private readonly messagesService: MessagesService,
     private readonly prisma: PrismaService,
-  ) { }
+    private readonly fcmService: FcmService,
+  ) {}
 
   async handleConnection(client: Socket) {
     try {
@@ -69,17 +72,15 @@ export class MessagesGateway
   ) {
     const senderId = client.data.userId as string;
 
-    // Save to database (reusing our existing service logic!)
     const message = await this.messagesService.sendMessage(
       senderId,
       data.conversationId,
       data.content,
     );
 
-    // Find the other participant to send them the real-time event
     const conversation = await this.prisma.conversation.findUnique({
       where: { id: data.conversationId },
-      include: { participants: true },
+      include: { participants: { include: { user: true } } },
     });
 
     const otherParticipant = conversation?.participants.find(
@@ -90,46 +91,21 @@ export class MessagesGateway
       const receiverSocketId = this.userSocketMap.get(otherParticipant.userId);
 
       if (receiverSocketId) {
-        // Receiver is online — push the message to them in real-time
+        // Receiver is online — deliver in real-time
         this.server.to(receiverSocketId).emit('message:new', message);
+      } else if (otherParticipant.user.fcmToken) {
+        // Receiver is offline — send push notification instead
+        await this.fcmService.sendPushNotification(
+          otherParticipant.user.fcmToken,
+          message.sender.displayName,
+          data.content,
+          { conversationId: data.conversationId },
+        );
       }
-      // If receiverSocketId doesn't exist, they're offline —
-      // this is where FCM push notification will come in later
     }
 
-    // Also send back to the sender for confirmation
     return message;
   }
-
-  @SubscribeMessage('message:read')
-async handleMessageRead(
-  @ConnectedSocket() client: Socket,
-  @MessageBody() data: { conversationId: string },
-) {
-  const userId = client.data.userId as string;
-
-  await this.messagesService.markAsRead(userId, data.conversationId);
-
-  const conversation = await this.prisma.conversation.findUnique({
-    where: { id: data.conversationId },
-    include: { participants: true },
-  });
-
-  const otherParticipant = conversation?.participants.find(
-    (p) => p.userId !== userId,
-  );
-
-  if (otherParticipant) {
-    const senderSocketId = this.userSocketMap.get(otherParticipant.userId);
-
-    if (senderSocketId) {
-      this.server.to(senderSocketId).emit('message:read', {
-        conversationId: data.conversationId,
-        readBy: userId,
-      });
-    }
-  }
-}
 
   notifyFriendRequest(
     receiverId: string,
@@ -139,6 +115,36 @@ async handleMessageRead(
 
     if (receiverSocketId) {
       this.server.to(receiverSocketId).emit('friend:request', payload);
+    }
+  }
+
+  @SubscribeMessage('message:read')
+  async handleMessageRead(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { conversationId: string },
+  ) {
+    const userId = client.data.userId as string;
+
+    await this.messagesService.markAsRead(userId, data.conversationId);
+
+    const conversation = await this.prisma.conversation.findUnique({
+      where: { id: data.conversationId },
+      include: { participants: true },
+    });
+
+    const otherParticipant = conversation?.participants.find(
+      (p) => p.userId !== userId,
+    );
+
+    if (otherParticipant) {
+      const senderSocketId = this.userSocketMap.get(otherParticipant.userId);
+
+      if (senderSocketId) {
+        this.server.to(senderSocketId).emit('message:read', {
+          conversationId: data.conversationId,
+          readBy: userId,
+        });
+      }
     }
   }
 }
