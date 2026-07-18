@@ -14,7 +14,9 @@ export class FcmService implements OnModuleInit {
       const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
 
       if (!serviceAccountJson) {
-        this.logger.error('FIREBASE_SERVICE_ACCOUNT environment variable is not set');
+        this.logger.error(
+          'FIREBASE_SERVICE_ACCOUNT environment variable is not set',
+        );
         return;
       }
 
