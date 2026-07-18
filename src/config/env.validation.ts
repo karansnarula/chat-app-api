@@ -4,5 +4,6 @@ export const envValidationSchema = Joi.object({
   DATABASE_URL: Joi.string().required(),
   JWT_ACCESS_SECRET: Joi.string().min(32).required(),
   JWT_REFRESH_SECRET: Joi.string().min(32).required(),
+  FIREBASE_SERVICE_ACCOUNT: Joi.string().required(),
   PORT: Joi.number().default(3000),
 });

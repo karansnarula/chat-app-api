@@ -1,7 +1,6 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { initializeApp, cert, getApps, App } from 'firebase-admin/app';
 import { getMessaging, Messaging } from 'firebase-admin/messaging';
-import * as path from 'path';
 
 @Injectable()
 export class FcmService implements OnModuleInit {
@@ -12,13 +11,17 @@ export class FcmService implements OnModuleInit {
     let app: App;
 
     if (getApps().length === 0) {
-      const serviceAccountPath = path.join(
-        process.cwd(),
-        'src/config/firebase/firebase-service-account.json',
-      );
+      const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
+
+      if (!serviceAccountJson) {
+        this.logger.error('FIREBASE_SERVICE_ACCOUNT environment variable is not set');
+        return;
+      }
+
+      const serviceAccount = JSON.parse(serviceAccountJson);
 
       app = initializeApp({
-        credential: cert(serviceAccountPath),
+        credential: cert(serviceAccount),
       });
 
       this.logger.log('Firebase Admin SDK initialized');
