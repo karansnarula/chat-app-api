@@ -14,7 +14,7 @@ export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-  ) { }
+  ) {}
 
   async register(dto: RegisterDto) {
     // Check if user already exists
@@ -96,7 +96,7 @@ export class AuthService {
     return { accessToken, refreshToken };
   }
 
-  async refreshTokens(userId: string, email: string) {
+  async refreshTokens(userId: string, _email: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -108,7 +108,7 @@ export class AuthService {
     return this.generateTokens(user.id, user.email);
   }
 
-  async logout(userId: string) {
+  async logout(_userId: string) {
     // For now, this is symbolic — the client discards tokens locally.
     // In the future, this is where we'd add token revocation (blocklist).
     return { message: 'Logged out successfully' };

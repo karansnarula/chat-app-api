@@ -52,7 +52,10 @@ describe('FriendsService', () => {
     });
 
     it('should throw BadRequestException if user tries to add themselves', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 'sender-id', email: 'self@test.com' });
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'sender-id',
+        email: 'self@test.com',
+      });
 
       await expect(
         service.sendRequest('sender-id', 'self@test.com'),
@@ -60,8 +63,13 @@ describe('FriendsService', () => {
     });
 
     it('should throw BadRequestException if already friends', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: 'receiver-id', email: 'friend@test.com' });
-      prisma.friendship.findFirst.mockResolvedValue({ id: 'existing-friendship' });
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'receiver-id',
+        email: 'friend@test.com',
+      });
+      prisma.friendship.findFirst.mockResolvedValue({
+        id: 'existing-friendship',
+      });
 
       await expect(
         service.sendRequest('sender-id', 'friend@test.com'),
@@ -73,7 +81,9 @@ describe('FriendsService', () => {
         .mockResolvedValueOnce({ id: 'receiver-id', email: 'friend@test.com' }) // receiver lookup
         .mockResolvedValueOnce({ id: 'sender-id', displayName: 'Sender' }); // sender lookup for notification
       prisma.friendship.findFirst.mockResolvedValue(null);
-      prisma.friendRequest.findFirst.mockResolvedValue({ id: 'existing-request' });
+      prisma.friendRequest.findFirst.mockResolvedValue({
+        id: 'existing-request',
+      });
 
       await expect(
         service.sendRequest('sender-id', 'friend@test.com'),
@@ -142,7 +152,11 @@ describe('FriendsService', () => {
       prisma.friendship.create.mockReturnValue('create-op');
       prisma.$transaction.mockResolvedValue([{}, {}]);
 
-      const result = await service.respondToRequest('user-id', 'request-id', 'accept');
+      const result = await service.respondToRequest(
+        'user-id',
+        'request-id',
+        'accept',
+      );
 
       expect(prisma.$transaction).toHaveBeenCalled();
       expect(result.message).toBe('Friend request accepted');

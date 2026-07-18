@@ -36,7 +36,10 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('should throw ConflictException if email already exists', async () => {
-      prisma.user.findUnique.mockResolvedValue({ id: '1', email: 'test@test.com' });
+      prisma.user.findUnique.mockResolvedValue({
+        id: '1',
+        email: 'test@test.com',
+      });
 
       await expect(
         service.register({

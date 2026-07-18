@@ -51,7 +51,7 @@ export class MessagesGateway
       client.data.userId = userId;
 
       this.logger.log(`User ${userId} connected with socket ${client.id}`);
-    } catch (error) {
+    } catch {
       this.logger.error('Connection rejected: invalid token');
       client.disconnect();
     }

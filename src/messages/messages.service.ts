@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  ForbiddenException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -21,11 +17,7 @@ export class MessagesService {
     }
   }
 
-  async sendMessage(
-    senderId: string,
-    conversationId: string,
-    content: string,
-  ) {
+  async sendMessage(senderId: string, conversationId: string, content: string) {
     await this.verifyParticipant(senderId, conversationId);
 
     const message = await this.prisma.message.create({
@@ -75,7 +67,8 @@ export class MessagesService {
 
     return {
       messages,
-      nextCursor: messages.length === limit ? messages[messages.length - 1].id : null,
+      nextCursor:
+        messages.length === limit ? messages[messages.length - 1].id : null,
     };
   }
 
