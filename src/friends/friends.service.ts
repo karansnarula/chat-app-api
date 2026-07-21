@@ -107,6 +107,8 @@ export class FriendsService {
       return { message: 'Friend request declined' };
     }
 
+    // Friendship and conversation are created together so an accepted
+    // request always yields a chat both users can open.
     await this.prisma.$transaction([
       this.prisma.friendRequest.update({
         where: { id: requestId },
@@ -116,6 +118,16 @@ export class FriendsService {
         data: {
           userAId: request.senderId,
           userBId: request.receiverId,
+        },
+      }),
+      this.prisma.conversation.create({
+        data: {
+          participants: {
+            create: [
+              { userId: request.senderId },
+              { userId: request.receiverId },
+            ],
+          },
         },
       }),
     ]);

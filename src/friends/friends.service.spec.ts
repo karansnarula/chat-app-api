@@ -17,6 +17,7 @@ describe('FriendsService', () => {
     prisma = {
       user: { findUnique: jest.fn() },
       friendship: { findFirst: jest.fn(), create: jest.fn() },
+      conversation: { create: jest.fn() },
       friendRequest: {
         findFirst: jest.fn(),
         findUnique: jest.fn(),
@@ -141,7 +142,7 @@ describe('FriendsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('should call transaction when accepting a request', async () => {
+    it('should create friendship and conversation in one transaction when accepting', async () => {
       prisma.friendRequest.findUnique.mockResolvedValue({
         id: 'request-id',
         receiverId: 'user-id',
@@ -149,8 +150,9 @@ describe('FriendsService', () => {
         status: 'PENDING',
       });
       prisma.friendRequest.update.mockReturnValue('update-op');
-      prisma.friendship.create.mockReturnValue('create-op');
-      prisma.$transaction.mockResolvedValue([{}, {}]);
+      prisma.friendship.create.mockReturnValue('friendship-op');
+      prisma.conversation.create.mockReturnValue('conversation-op');
+      prisma.$transaction.mockResolvedValue([{}, {}, {}]);
 
       const result = await service.respondToRequest(
         'user-id',
@@ -158,7 +160,18 @@ describe('FriendsService', () => {
         'accept',
       );
 
-      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(prisma.$transaction).toHaveBeenCalledWith([
+        'update-op',
+        'friendship-op',
+        'conversation-op',
+      ]);
+      expect(prisma.conversation.create).toHaveBeenCalledWith({
+        data: {
+          participants: {
+            create: [{ userId: 'sender-id' }, { userId: 'user-id' }],
+          },
+        },
+      });
       expect(result.message).toBe('Friend request accepted');
     });
   });
