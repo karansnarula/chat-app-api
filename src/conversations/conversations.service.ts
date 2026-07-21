@@ -70,6 +70,13 @@ export class ConversationsService {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        _count: {
+          select: {
+            messages: {
+              where: { senderId: { not: userId }, status: 'SENT' },
+            },
+          },
+        },
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -84,6 +91,7 @@ export class ConversationsService {
         id: conversation.id,
         otherUser: otherParticipant?.user,
         lastMessage: conversation.messages[0] || null,
+        unreadCount: conversation._count.messages,
       };
     });
   }
